@@ -1,8 +1,8 @@
 # ArchaeologyRush
 
-Elixir / Phoenix LiveView / Elixir Desktop を前提にした考古学発掘シミュレーションの初期スキャフォールドです。
+Elixir / Phoenix LiveView / Elixir Desktop を前提にした考古学発掘シミュレーションです。
 
-現時点では `AGENT.md` の制約に従い、考古学ドメインの仕様実装は行わず、土台だけを分割可能な形で配置しています。
+現時点では、コア状態遷移、ユースケース層、終了判定、デモスクリプト、最小 LiveView 画面まで実装済みです。
 
 ## Current Layout
 
@@ -17,26 +17,46 @@ ArchaeologyRush/
 ├── docs/
 ├── lib/
 │   └── archaeology_rush/
+│   └── archaeology_rush_web.ex
 ├── priv/
 │   ├── repo/
 │   └── static/
+├── scripts/
 ├── src/
 └── test/
     └── support/
 ```
 
-## Scope of This Step
+## Current Status
 
-* `mix.exs` に Phoenix / LiveView / Desktop / SQLite / vix / QA 系依存の初期定義を追加
-* `elixirc_paths/1` と `quality` alias を定義
-* 今後の Phoenix アプリ本体、監督ツリー、ExUnit 基盤を追加できるディレクトリを先行作成
+* `SiteState` に `dig` / `catalog` / `recover` / `end_turn` を実装
+* `Excavation` にユースケース API と `game_status/1` を実装
+* `Demo.run/0` と `scripts/demo_excavation.exs` で進行中 / 勝利 / 敗北の流れを確認可能
+* `http://localhost:4000` に最小 LiveView 画面を追加
+* `mix test` と `mix quality` は通過済み
 
-## Planned Next Chunks
+## Run
 
-1. `config/` と `lib/` のアプリケーション骨格を追加
-2. `test/` に ExUnit 基盤と最初の回帰防止テストを追加
-3. Phoenix LiveView と Desktop エントリポイントを接続
+```bash
+mix test
+mix quality
+
+# CLI demo
+mix run scripts/demo_excavation.exs
+
+# LiveView demo
+mix run --no-halt
+```
+
+LiveView demo は `http://localhost:4000` で確認できます。
+
+## Implemented Scope
+
+* コア状態遷移: 行動消費、層進行、遺物発見、記録、回収、ターン終了
+* 終了判定: `:in_progress` / `:won` / `{:lost, reason}`
+* デモ表示: progression / winning / losing case
+* Web 表示: LiveView でデモ出力をブラウザ表示
 
 ## Domain Boundary
 
-考古学的な用語体系、発掘工程、層位学ルール、遺物分類は未実装です。これらは `AGENT.md` の指示どおり、ユーザー仕様の確認後にのみ追加します。
+考古学ドメインはユーザー確定仕様に従って実装を進めています。今後の詳細ルール追加も、引き続きユーザー仕様を基準に進めます。
