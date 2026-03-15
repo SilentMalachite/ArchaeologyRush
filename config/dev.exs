@@ -1,7 +1,6 @@
 import Config
 
-config :logger, :console,
-  level: :debug
+config :logger, :console, level: :debug
 
 config :phoenix,
   stacktrace_depth: 20,

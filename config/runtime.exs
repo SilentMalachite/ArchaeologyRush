@@ -17,7 +17,19 @@ pool_size =
   end
 
 config :archaeology_rush,
-  start_repo: config_env() != :test
+  start_repo: config_env() != :test,
+  start_web: config_env() != :test
+
+config :archaeology_rush, ArchaeologyRushWeb.Endpoint,
+  adapter: Bandit.PhoenixAdapter,
+  server: config_env() != :test,
+  url: [host: "localhost"],
+  http: [ip: {127, 0, 0, 1}, port: String.to_integer(System.get_env("PORT") || "4000")],
+  secret_key_base:
+    System.get_env("SECRET_KEY_BASE") ||
+      "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+  live_view: [signing_salt: "archaeologyrush"],
+  pubsub_server: ArchaeologyRush.PubSub
 
 config :archaeology_rush, ArchaeologyRush.Repo,
   database: database_path,

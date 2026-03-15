@@ -15,6 +15,12 @@ defmodule ArchaeologyRush.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [quality: :test]
+    ]
+  end
+
   def application do
     [
       mod: {ArchaeologyRush.Application, []},
@@ -39,7 +45,12 @@ defmodule ArchaeologyRush.MixProject do
       {:phoenix_live_dashboard, "~> 0.8"},
       {:esbuild, "~> 0.10", runtime: Mix.env() == :dev},
       {:tailwind, "~> 0.3", runtime: Mix.env() == :dev},
-      {:heroicons, github: "tailwindlabs/heroicons", tag: "v2.2.0", sparse: "optimized", app: false, compile: false},
+      {:heroicons,
+       github: "tailwindlabs/heroicons",
+       tag: "v2.2.0",
+       sparse: "optimized",
+       app: false,
+       compile: false},
       {:desktop, "~> 1.5"},
       {:bandit, "~> 1.8"},
       {:vix, "~> 0.34"},

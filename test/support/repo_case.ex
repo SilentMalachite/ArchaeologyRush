@@ -48,6 +48,7 @@ defmodule ArchaeologyRush.RepoCase do
       |> Enum.map_join(", ", &"?#{&1}")
 
     columns_sql = Enum.join(columns, ", ")
+
     ArchaeologyRush.Repo.query!(
       "INSERT INTO #{table_name} (#{columns_sql}) VALUES (#{placeholders})",
       values
