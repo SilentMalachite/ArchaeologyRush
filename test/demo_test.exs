@@ -3,6 +3,17 @@ defmodule ArchaeologyRush.DemoTest do
 
   alias ArchaeologyRush.Demo
 
+  test "scenarios/0 returns structured cards for each demo flow" do
+    scenarios = Demo.scenarios()
+
+    assert Enum.map(scenarios, & &1.id) == [:progression, :winning, :losing]
+    assert Enum.at(scenarios, 0).subtitle == "進行中の基本フロー"
+    assert Enum.at(scenarios, 1).snapshots |> List.last() |> Map.fetch!(:game_status) == :won
+
+    assert Enum.at(scenarios, 2).snapshots |> List.last() |> Map.fetch!(:game_status) ==
+             {:lost, :too_many_record_misses}
+  end
+
   test "run/0 renders the expected state transition summary" do
     output = Demo.run()
 

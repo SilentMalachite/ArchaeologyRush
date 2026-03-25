@@ -43,3 +43,6 @@ archaeology_rush-*.tar
 # Local editor settings
 .air/
 CLAUDE.md
+
+# Superpowers brainstorming assets
+.superpowers/

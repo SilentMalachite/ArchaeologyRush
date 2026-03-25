@@ -5,22 +5,56 @@ defmodule ArchaeologyRush.Demo do
 
   alias ArchaeologyRush.Excavation
 
+  @type snapshot :: %{
+          label: String.t(),
+          game_status: Excavation.game_status(),
+          turn: pos_integer(),
+          actions_left: non_neg_integer(),
+          score: integer(),
+          artifact_status: atom(),
+          artifact_quality: atom(),
+          last_action: atom()
+        }
+
+  @type scenario :: %{
+          id: atom(),
+          title: String.t(),
+          subtitle: String.t(),
+          snapshots: [snapshot()]
+        }
+
   @spec run() :: String.t()
   def run do
-    [
-      "ArchaeologyRush demo",
-      "===================",
-      "",
-      format_scenario("progression case", progression_case()),
-      "",
-      format_scenario("winning case", winning_case()),
-      "",
-      format_scenario("losing case", losing_case())
-    ]
-    |> Enum.join("\n")
+    scenarios()
+    |> Enum.map_join("\n\n", &format_scenario/1)
+    |> then(&Enum.join(["ArchaeologyRush demo", "===================", "", &1], "\n"))
   end
 
-  @spec progression_case() :: [{String.t(), Excavation.t(), pos_integer()}]
+  @spec scenarios() :: [scenario()]
+  def scenarios do
+    [
+      %{
+        id: :progression,
+        title: "progression case",
+        subtitle: "進行中の基本フロー",
+        snapshots: progression_case()
+      },
+      %{
+        id: :winning,
+        title: "winning case",
+        subtitle: "重要遺物の回収後に完了報告して勝利",
+        snapshots: winning_case()
+      },
+      %{
+        id: :losing,
+        title: "losing case",
+        subtitle: "記録漏れ上限超過で敗北",
+        snapshots: losing_case()
+      }
+    ]
+  end
+
+  @spec progression_case() :: [snapshot()]
   defp progression_case do
     discovery_fn = fn _cell, _layer, _turn ->
       %{kind: :stone_tool, quality: :excellent}
@@ -51,14 +85,14 @@ defmodule ArchaeologyRush.Demo do
     after_end_turn = excavation
 
     [
-      {"after dig", after_dig, artifact.id},
-      {"after catalog", after_catalog, artifact.id},
-      {"after recover", after_recover, artifact.id},
-      {"after end_turn", after_end_turn, artifact.id}
+      build_snapshot("after dig", after_dig, artifact.id),
+      build_snapshot("after catalog", after_catalog, artifact.id),
+      build_snapshot("after recover", after_recover, artifact.id),
+      build_snapshot("after end_turn", after_end_turn, artifact.id)
     ]
   end
 
-  @spec winning_case() :: [{String.t(), Excavation.t(), pos_integer()}]
+  @spec winning_case() :: [snapshot()]
   defp winning_case do
     discovery_fn = fn _cell, _layer, _turn ->
       %{kind: :stone_tool, quality: :good}
@@ -84,12 +118,12 @@ defmodule ArchaeologyRush.Demo do
     reported = Excavation.complete_report(excavation)
 
     [
-      {"after recover", recovered, artifact.id},
-      {"after complete_report", reported, artifact.id}
+      build_snapshot("after recover", recovered, artifact.id),
+      build_snapshot("after complete_report", reported, artifact.id)
     ]
   end
 
-  @spec losing_case() :: [{String.t(), Excavation.t(), pos_integer()}]
+  @spec losing_case() :: [snapshot()]
   defp losing_case do
     discovery_fn = fn _cell, _layer, _turn ->
       %{kind: :bone_fragment, quality: :fair}
@@ -102,37 +136,49 @@ defmodule ArchaeologyRush.Demo do
     ended_turn = Excavation.end_turn(excavation)
 
     [
-      {"after dig", excavation, artifact.id},
-      {"after end_turn", ended_turn, artifact.id}
+      build_snapshot("after dig", excavation, artifact.id),
+      build_snapshot("after end_turn", ended_turn, artifact.id)
     ]
   end
 
-  @spec format_scenario(String.t(), [{String.t(), Excavation.t(), pos_integer()}]) :: String.t()
-  defp format_scenario(label, snapshots) do
+  @spec format_scenario(scenario()) :: String.t()
+  defp format_scenario(scenario) do
     [
-      "#{label}:",
-      Enum.map_join(snapshots, "\n\n", fn {snapshot_label, excavation, artifact_id} ->
-        format_snapshot(snapshot_label, excavation, artifact_id)
-      end)
+      "#{scenario.title}:",
+      Enum.map_join(scenario.snapshots, "\n\n", &format_snapshot/1)
     ]
     |> Enum.join("\n")
   end
 
-  @spec format_snapshot(String.t(), Excavation.t(), pos_integer()) :: String.t()
-  defp format_snapshot(label, excavation, artifact_id) do
+  @spec build_snapshot(String.t(), Excavation.t(), pos_integer()) :: snapshot()
+  defp build_snapshot(label, excavation, artifact_id) do
     state = Excavation.site_state(excavation)
     artifact = Map.fetch!(state.artifacts, artifact_id)
     last_log = List.last(state.turn_logs)
 
+    %{
+      label: label,
+      game_status: Excavation.game_status(excavation),
+      turn: state.turn,
+      actions_left: state.actions_left,
+      score: state.score,
+      artifact_status: artifact.status,
+      artifact_quality: artifact.quality,
+      last_action: last_log.action
+    }
+  end
+
+  @spec format_snapshot(snapshot()) :: String.t()
+  defp format_snapshot(snapshot) do
     [
-      "[#{label}]",
-      "game_status=#{inspect(Excavation.game_status(excavation))}",
-      "turn=#{state.turn}",
-      "actions_left=#{state.actions_left}",
-      "score=#{state.score}",
-      "artifact_status=#{artifact.status}",
-      "artifact_quality=#{artifact.quality}",
-      "last_action=#{last_log.action}"
+      "[#{snapshot.label}]",
+      "game_status=#{inspect(snapshot.game_status)}",
+      "turn=#{snapshot.turn}",
+      "actions_left=#{snapshot.actions_left}",
+      "score=#{snapshot.score}",
+      "artifact_status=#{snapshot.artifact_status}",
+      "artifact_quality=#{snapshot.artifact_quality}",
+      "last_action=#{snapshot.last_action}"
     ]
     |> Enum.join("\n")
   end
