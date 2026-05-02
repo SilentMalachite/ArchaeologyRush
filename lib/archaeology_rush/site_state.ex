@@ -10,9 +10,10 @@ defmodule ArchaeologyRush.SiteState do
   @type artifact_kind :: :pottery_shard | :stone_tool | :bone_fragment | :feature_mark
   @type artifact_quality :: :poor | :fair | :good | :excellent
 
-  @required_catalog_fields ~w(artifact_id coordinate depth layer_id discovered_turn operator_note)a
+  @required_catalog_fields ~w(artifact_id coordinate depth layer_id discovered_turn context_type operator_note)a
   @layer_order [:upper, :middle, :lower]
   @contamination_note_keywords ["混入", "層乱れ", "注意"]
+  @context_types ["feature_inside"]
   @artifact_base_scores %{
     pottery_shard: 8,
     stone_tool: 12,
@@ -31,6 +32,7 @@ defmodule ArchaeologyRush.SiteState do
           depth: non_neg_integer() | nil,
           layer_id: String.t() | nil,
           discovered_turn: pos_integer(),
+          context_type: String.t() | nil,
           operator_note: String.t() | nil
         }
 
@@ -123,7 +125,7 @@ defmodule ArchaeologyRush.SiteState do
 
       {:ok, artifact} ->
         merged = Map.merge(artifact, attrs)
-        missing = Enum.filter(@required_catalog_fields, &blank?(Map.get(merged, &1)))
+        missing = Enum.filter(@required_catalog_fields, &missing_catalog_field?(merged, &1))
 
         if missing == [] do
           cataloged = %{merged | status: :cataloged}
@@ -234,6 +236,7 @@ defmodule ArchaeologyRush.SiteState do
       depth: progress + 1,
       layer_id: Atom.to_string(layer),
       discovered_turn: state.turn,
+      context_type: nil,
       operator_note: nil
     }
 
@@ -308,4 +311,11 @@ defmodule ArchaeologyRush.SiteState do
   @spec blank?(term()) :: boolean()
   defp blank?(value) when value in [nil, ""], do: true
   defp blank?(_value), do: false
+
+  @spec missing_catalog_field?(artifact(), atom()) :: boolean()
+  defp missing_catalog_field?(artifact, :context_type) do
+    Map.get(artifact, :context_type) not in @context_types
+  end
+
+  defp missing_catalog_field?(artifact, field), do: blank?(Map.get(artifact, field))
 end

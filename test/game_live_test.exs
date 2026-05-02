@@ -158,18 +158,23 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
       assert html =~ "深度"
       assert html =~ "層ID"
       assert html =~ "発見ターン"
+      assert html =~ "出土状況/コンテキスト"
+      assert html =~ "遺構内"
       assert html =~ "担当者メモ"
 
       html =
         view
-        |> form("#catalog-form", %{"catalog" => %{"operator_note" => ""}})
+        |> form("#catalog-form", %{"catalog" => %{"context_type" => "", "operator_note" => ""}})
         |> render_submit()
 
+      assert html =~ "出土状況を選択してください"
       assert html =~ "担当者メモを入力してください"
 
       html =
         view
-        |> form("#catalog-form", %{"catalog" => %{"operator_note" => "記録済み"}})
+        |> form("#catalog-form", %{
+          "catalog" => %{"context_type" => "feature_inside", "operator_note" => "記録済み"}
+        })
         |> render_submit()
 
       assert html =~ "記録済"

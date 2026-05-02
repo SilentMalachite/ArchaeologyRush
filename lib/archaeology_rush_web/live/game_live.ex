@@ -46,6 +46,7 @@ defmodule ArchaeologyRushWeb.GameLive do
   }
   @difficulty_labels %{easy: "かんたん", normal: "ふつう", hard: "むずかしい"}
   @difficulty_order [:easy, :normal, :hard]
+  @context_type_options [{"遺構内", "feature_inside"}]
 
   @impl true
   def mount(_params, session, socket) do
@@ -66,6 +67,7 @@ defmodule ArchaeologyRushWeb.GameLive do
        catalog_target_id: nil,
        catalog_values: %{},
        catalog_errors: %{},
+       context_type_options: @context_type_options,
        show_final_report_modal: false,
        final_report_values: %{},
        final_report_errors: %{}
@@ -148,7 +150,11 @@ defmodule ArchaeologyRushWeb.GameLive do
     errors = validate_catalog(catalog)
 
     if errors == %{} do
-      attrs = %{operator_note: Map.get(catalog, "operator_note"), artifact_id: id}
+      attrs = %{
+        artifact_id: id,
+        context_type: Map.get(catalog, "context_type"),
+        operator_note: Map.get(catalog, "operator_note")
+      }
 
       case GameSession.catalog(socket.assigns.game_pid, id, attrs) do
         {:ok, excavation, _artifact} ->
@@ -495,6 +501,23 @@ defmodule ArchaeologyRushWeb.GameLive do
             <% end %>
             <form id="catalog-form" phx-submit="submit_catalog">
               <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;">
+                出土状況/コンテキスト
+              </label>
+              <select
+                name="catalog[context_type]"
+                style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; margin-bottom: 10px;"
+              >
+                <option value="">選択してください</option>
+                <%= for {label, value} <- @context_type_options do %>
+                  <option value={value} selected={Map.get(@catalog_values, "context_type") == value}>
+                    <%= label %>
+                  </option>
+                <% end %>
+              </select>
+              <%= if error = Map.get(@catalog_errors, "context_type") do %>
+                <div style="color: #ff6b6b; font-size: 0.75rem; margin: -4px 0 10px;"><%= error %></div>
+              <% end %>
+              <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;">
                 担当者メモ
               </label>
               <textarea
@@ -627,11 +650,17 @@ defmodule ArchaeologyRushWeb.GameLive do
   end
 
   defp validate_catalog(catalog) do
-    if blank?(Map.get(catalog, "operator_note")) do
-      %{"operator_note" => "担当者メモを入力してください"}
-    else
-      %{}
-    end
+    %{}
+    |> maybe_put_catalog_error(
+      "context_type",
+      Map.get(catalog, "context_type") not in valid_context_type_values(),
+      "出土状況を選択してください"
+    )
+    |> maybe_put_catalog_error(
+      "operator_note",
+      blank?(Map.get(catalog, "operator_note")),
+      "担当者メモを入力してください"
+    )
   end
 
   defp catalog_missing_field_errors(fields) do
@@ -639,7 +668,15 @@ defmodule ArchaeologyRushWeb.GameLive do
   end
 
   defp catalog_field_error(:operator_note), do: "担当者メモを入力してください"
+  defp catalog_field_error(:context_type), do: "出土状況を選択してください"
   defp catalog_field_error(field), do: "#{field}を確認してください"
+
+  defp maybe_put_catalog_error(errors, _field, false, _message), do: errors
+  defp maybe_put_catalog_error(errors, field, true, message), do: Map.put(errors, field, message)
+
+  defp valid_context_type_values do
+    Enum.map(@context_type_options, fn {_label, value} -> value end)
+  end
 
   defp catalog_target_artifact(excavation, artifact_id) do
     Map.get(excavation.site_state.artifacts, artifact_id)

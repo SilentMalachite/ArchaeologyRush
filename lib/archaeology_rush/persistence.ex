@@ -116,6 +116,7 @@ defmodule ArchaeologyRush.Persistence do
       depth: artifact.depth,
       layer_id: artifact.layer_id,
       discovered_turn: artifact.discovered_turn,
+      context_type: Map.get(artifact, :context_type),
       operator_note: artifact.operator_note
     }
   end
@@ -142,6 +143,7 @@ defmodule ArchaeologyRush.Persistence do
       depth: artifact.depth,
       layer_id: artifact.layer_id,
       discovered_turn: artifact.discovered_turn,
+      context_type: artifact.context_type,
       operator_note: artifact.operator_note
     }
   end

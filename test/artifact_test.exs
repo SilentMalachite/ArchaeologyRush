@@ -41,6 +41,7 @@ defmodule ArchaeologyRush.ArtifactTest do
           depth: 3,
           layer_id: "lower",
           discovered_turn: 4,
+          context_type: "feature_inside",
           operator_note: "rim fragment near grid edge"
         })
 
@@ -64,6 +65,25 @@ defmodule ArchaeologyRush.ArtifactTest do
                quality: ["can't be blank"],
                status: ["can't be blank"]
              }
+    end
+
+    test "rejects unsupported context types" do
+      changeset =
+        Artifact.game_changeset(%Artifact{}, %{
+          game_artifact_id: 1,
+          kind: "pottery_shard",
+          quality: "good",
+          status: "cataloged",
+          coordinate_row: 1,
+          coordinate_col: 2,
+          depth: 3,
+          layer_id: "lower",
+          discovered_turn: 4,
+          context_type: "unknown_context"
+        })
+
+      refute changeset.valid?
+      assert errors_on(changeset).context_type == ["is invalid"]
     end
   end
 

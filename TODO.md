@@ -24,7 +24,7 @@
 ### P1: 永続化の土台を作る
 
 - [x] 実行時の `%Excavation{}` / `%SiteState{}` に対応する保存モデルを設計する
-- [x] `Artifact` スキーマを、現在のゲーム内 artifact 情報 (`kind`, `quality`, `status`, `coordinate`, `depth`, `layer_id`, `discovered_turn`, `operator_note`) に合わせて見直す
+- [x] `Artifact` スキーマを、現在のゲーム内 artifact 情報 (`kind`, `quality`, `status`, `coordinate`, `depth`, `layer_id`, `discovered_turn`, `context_type`, `operator_note`) に合わせて見直す
 - [x] 発掘セッション保存と `TurnLog` 永続化を追加し、行動履歴を Repo に記録できるようにする
 - [x] セーブ / ロードのユースケース API と ExUnit テストを追加する
 

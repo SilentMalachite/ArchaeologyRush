@@ -78,6 +78,7 @@ defmodule ArchaeologyRush.ExcavationTest do
         depth: 1,
         layer_id: "upper",
         discovered_turn: 1,
+        context_type: "feature_inside",
         operator_note: "catalog complete"
       }
 
@@ -142,6 +143,7 @@ defmodule ArchaeologyRush.ExcavationTest do
       depth: 1,
       layer_id: "upper",
       discovered_turn: 1,
+      context_type: "feature_inside",
       operator_note: "catalog complete"
     }
 

@@ -6,6 +6,8 @@ defmodule ArchaeologyRush.Artifact do
 
   alias ArchaeologyRush.SavedSession
 
+  @context_types ~w(feature_inside)
+
   schema "artifacts" do
     belongs_to :game_session, SavedSession
     field :game_artifact_id, :integer
@@ -20,6 +22,7 @@ defmodule ArchaeologyRush.Artifact do
     field :depth, :integer
     field :layer_id, :string
     field :discovered_turn, :integer
+    field :context_type, :string
     field :operator_note, :string
 
     timestamps(type: :utc_datetime)
@@ -52,6 +55,7 @@ defmodule ArchaeologyRush.Artifact do
       :depth,
       :layer_id,
       :discovered_turn,
+      :context_type,
       :operator_note
     ])
     |> validate_required([
@@ -73,5 +77,16 @@ defmodule ArchaeologyRush.Artifact do
     |> validate_inclusion(:kind, ~w(pottery_shard stone_tool bone_fragment feature_mark))
     |> validate_inclusion(:quality, ~w(poor fair good excellent))
     |> validate_inclusion(:status, ~w(discovered on_hold cataloged recovered))
+    |> validate_optional_inclusion(:context_type, @context_types)
+  end
+
+  defp validate_optional_inclusion(changeset, field, values) do
+    validate_change(changeset, field, fn ^field, value ->
+      if value in [nil, ""] or value in values do
+        []
+      else
+        [{field, "is invalid"}]
+      end
+    end)
   end
 end

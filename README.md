@@ -72,7 +72,7 @@ mix run --no-halt
 * コア状態遷移: 行動消費、層進行、遺物発見、記録（catalog）、回収（recover）、ターン終了
 * 終了判定: `:in_progress` / `:won` / `{:lost, :turn_limit_reached | :too_many_record_misses}`
 * インタラクティブUI: セル選択・掘削・記録モーダル・回収・ターン管理・最終レポートフォーム・ゲームオーバー表示
-* プレイフィードバック: Catalog必須項目検証、層混入ペナルティ、記録ミス、スコア増減理由を画面ログで表示
+* プレイフィードバック: Catalog必須項目検証、出土状況/コンテキスト記録、層混入ペナルティ、記録ミス、スコア増減理由を画面ログで表示
 * デモ表示: progression / winning / losing case をカードで可視化
 * DB インフラ: Ecto + SQLite3、game_sessions / artifacts / turn_logs による保存/読込 API
 * 発見ロジック: `RandomDiscovery.discovery_fn/1` で確率テーブル、種類重み、品質重みを注入可能

@@ -39,6 +39,7 @@ defmodule ArchaeologyRush.PersistenceTest do
       "depth INTEGER",
       optional_text("layer_id"),
       "discovered_turn INTEGER",
+      optional_text("context_type"),
       optional_text("operator_note"),
       required_text("inserted_at"),
       required_text("updated_at")
@@ -95,6 +96,7 @@ defmodule ArchaeologyRush.PersistenceTest do
                  depth: 1,
                  layer_id: "upper",
                  discovered_turn: 1,
+                 context_type: "feature_inside",
                  operator_note: "documented in grid square"
                }
              }
@@ -116,7 +118,11 @@ defmodule ArchaeologyRush.PersistenceTest do
 
   defp catalog_artifact(excavation, artifact_id, note) do
     {:ok, excavation, _artifact} =
-      Excavation.catalog(excavation, artifact_id, %{artifact_id: artifact_id, operator_note: note})
+      Excavation.catalog(excavation, artifact_id, %{
+        artifact_id: artifact_id,
+        context_type: "feature_inside",
+        operator_note: note
+      })
 
     excavation
   end

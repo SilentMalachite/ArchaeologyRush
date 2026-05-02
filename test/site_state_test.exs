@@ -56,6 +56,7 @@ defmodule ArchaeologyRush.SiteStateTest do
                SiteState.catalog(state, artifact.id, %{})
 
       assert :artifact_id in missing
+      assert :context_type in missing
 
       attrs = %{
         artifact_id: artifact.id,
@@ -63,6 +64,7 @@ defmodule ArchaeologyRush.SiteStateTest do
         depth: 1,
         layer_id: "upper",
         discovered_turn: 1,
+        context_type: "feature_inside",
         operator_note: "well preserved"
       }
 
@@ -151,6 +153,7 @@ defmodule ArchaeologyRush.SiteStateTest do
         depth: artifact.depth,
         layer_id: artifact.layer_id,
         discovered_turn: artifact.discovered_turn,
+        context_type: "feature_inside",
         operator_note: "well preserved"
       },
       overrides

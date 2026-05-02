@@ -60,9 +60,15 @@ defmodule ArchaeologyRush.GameSessionTest do
       {:ok, pid} = GameSession.start_link(discovery_fn: always_discover_fn())
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
 
-      attrs = %{operator_note: "テスト記録", artifact_id: artifact.id}
+      attrs = %{
+        artifact_id: artifact.id,
+        context_type: "feature_inside",
+        operator_note: "テスト記録"
+      }
+
       assert {:ok, state, cataloged} = GameSession.catalog(pid, artifact.id, attrs)
       assert cataloged.status == :cataloged
+      assert cataloged.context_type == "feature_inside"
       assert cataloged.operator_note == "テスト記録"
       assert state.site_state.artifacts[artifact.id].status == :cataloged
     end
@@ -74,7 +80,11 @@ defmodule ArchaeologyRush.GameSessionTest do
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
 
       {:ok, _state, _cataloged} =
-        GameSession.catalog(pid, artifact.id, %{operator_note: "memo", artifact_id: artifact.id})
+        GameSession.catalog(pid, artifact.id, %{
+          artifact_id: artifact.id,
+          context_type: "feature_inside",
+          operator_note: "memo"
+        })
 
       assert {:ok, state, recovered} = GameSession.recover(pid, artifact.id)
       assert recovered.status == :recovered
@@ -110,7 +120,11 @@ defmodule ArchaeologyRush.GameSessionTest do
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
 
       {:ok, _state, _cataloged} =
-        GameSession.catalog(pid, artifact.id, %{operator_note: "note", artifact_id: artifact.id})
+        GameSession.catalog(pid, artifact.id, %{
+          artifact_id: artifact.id,
+          context_type: "feature_inside",
+          operator_note: "note"
+        })
 
       {:ok, _state, _recovered} = GameSession.recover(pid, artifact.id)
 
