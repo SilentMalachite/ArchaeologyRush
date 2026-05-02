@@ -126,13 +126,34 @@
   - ルールごとに正常系/異常系のExUnitを作成
   - バグ修正時は回帰テストを追加
 - 品質ゲート:
-  - `mix format --check-formatted`
-  - `mix test`
-  - `mix quality`
+  - 日常ゲートは `mix quality` とする。
+  - `mix quality` は `mix format --check-formatted`、警告をエラー扱いにした compile、`mix test`、`mix credo --strict` を実行する。
+  - リリース前または大きめの変更完了時は `mix quality.full` を実行し、日常ゲートに加えて `mix dialyzer` を通す。
 - 性能目標: 1アクション処理を200ms以内（ローカル実行基準）で完了。
 - セーブ互換性: マイナーバージョン間でセーブ読込互換を維持。
 
-## 11. 受け入れ条件（Definition of Done）
+## 11. 運用方針
+
+### 11.1 Elixir Desktop 配布
+
+- 初期配布ターゲットは macOS とする。
+- Windows / Linux 向けインストーラ、コード署名、ノータライズ、自動更新は初期配布範囲外とし、macOS 版の動作確認後に別タスクで扱う。
+- 配布前の確認手順:
+  1. `mix setup`
+  2. `mix quality.full`
+  3. `MIX_ENV=prod mix compile`
+  4. `MIX_ENV=prod ARCHAEOLOGY_RUSH_DATABASE_PATH="$HOME/Library/Application Support/ArchaeologyRush/archaeology_rush.sqlite3" mix run --no-halt`
+- 起動確認では `/game` の新規ゲーム開始、1回以上の `dig`、終了操作、DBファイル作成を確認する。
+
+### 11.2 セーブデータ形式と移行
+
+- セーブデータの正本は SQLite DB とし、外部JSONファイルは初期運用では作らない。
+- DB配置は `ARCHAEOLOGY_RUSH_DATABASE_PATH` で上書き可能にする。
+- スキーマ変更は Ecto migration で管理し、既存セーブを壊さない追加的変更を優先する。
+- 既存列の意味変更、削除、型変更が必要な場合は、移行テストと `Persistence.load!/1` の回帰テストを先に追加する。
+- セーブ互換性は同一マイナーバージョン内で維持する。互換性を破る変更はリリースノートと移行手順を必須にする。
+
+## 12. 受け入れ条件（Definition of Done）
 
 - [x] ドメインルールが本ドキュメントで確定している
 - [x] 主要ユースケースに対応するテストが存在する
@@ -142,17 +163,15 @@
 - [x] Catalog UI で必須項目の不足表示と再入力ができる
 - [x] 最終レポートが入力フォームと検証を通じて完了する
 
-## 12. 未決事項
+## 13. 未決事項
 
 - [ ] 難易度設計（固定/可変）
 - [ ] チュートリアルの有無
-- [ ] セーブデータ形式と移行方針
-- [ ] Desktop配布ターゲット
 - [ ] 発見確率テーブルの詳細条件
 - [ ] 重要遺物の定義と評価点
 - [ ] 道具耐久が 0 になった後の扱い
 
-## 13. 変更履歴
+## 14. 変更履歴
 
 - 2026-03-15: 初版テンプレート作成
 - 2026-03-15: `TBD` に仮例を入力
@@ -162,3 +181,4 @@
 - 2026-05-02: セッション、アーティファクト、ターンログの保存/読込 API を反映
 - 2026-05-02: Catalog UI 検証、層混入ペナルティ、記録ミス、スコア増減ログを反映
 - 2026-05-02: `RandomDiscovery` をセル×層の確率テーブルを参照する実装へ更新
+- 2026-05-02: 品質ゲート、macOS初期配布、セーブデータ移行方針を追加

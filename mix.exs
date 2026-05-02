@@ -17,7 +17,12 @@ defmodule ArchaeologyRush.MixProject do
 
   def cli do
     [
-      preferred_envs: [quality: :test]
+      preferred_envs: [
+        quality: :test,
+        credo: :test,
+        "quality.full": :dev,
+        dialyzer: :dev
+      ]
     ]
   end
 
@@ -65,7 +70,13 @@ defmodule ArchaeologyRush.MixProject do
       setup: ["deps.get", "ecto.setup"],
       "ecto.setup": ["ecto.create", "ecto.migrate"],
       "ecto.reset": ["ecto.drop", "ecto.setup"],
-      quality: ["format --check-formatted", "compile --warnings-as-errors", "test"]
+      quality: [
+        "format --check-formatted",
+        "compile --warnings-as-errors",
+        "test",
+        "credo --strict"
+      ],
+      "quality.full": ["cmd --shell MIX_ENV=test mix quality", "dialyzer"]
     ]
   end
 end
