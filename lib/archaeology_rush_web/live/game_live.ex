@@ -821,8 +821,8 @@ defmodule ArchaeologyRushWeb.GameLive do
     "セル(#{r},#{c})を掘削 → #{layer_label_from_atom(layer)}"
   end
 
-  defp format_log(%{action: :catalog, artifact_id: id}) do
-    "アーティファクト##{id}を記録"
+  defp format_log(%{action: :catalog, artifact_id: id, record_quality_score: score}) do
+    "アーティファクト##{id}を記録 (記録品質 #{format_signed_score(score)}点)"
   end
 
   defp format_log(%{action: :recover, artifact_id: id, score_gain: gain}) do
@@ -838,6 +838,9 @@ defmodule ArchaeologyRushWeb.GameLive do
   end
 
   defp format_log(_), do: ""
+
+  defp format_signed_score(score) when score > 0, do: "+#{score}"
+  defp format_signed_score(score), do: to_string(score)
 
   defp layer_label_from_atom(:upper), do: "上層"
   defp layer_label_from_atom(:middle), do: "中層"

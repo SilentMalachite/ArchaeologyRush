@@ -25,7 +25,7 @@ defmodule ArchaeologyRush.DemoTest do
     assert output =~ "[after catalog]"
     assert output =~ "artifact_status=cataloged"
     assert output =~ "[after recover]"
-    assert output =~ "score=24"
+    assert output =~ "score=27"
     assert output =~ "[after end_turn]"
     assert output =~ "turn=2"
     assert output =~ "last_action=end_turn"

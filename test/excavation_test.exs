@@ -91,7 +91,7 @@ defmodule ArchaeologyRush.ExcavationTest do
       state = Excavation.site_state(finished_turn)
 
       assert state.turn == 2
-      assert state.score == 24
+      assert state.score == 27
       assert List.last(state.turn_logs).action == :end_turn
     end
 
@@ -110,7 +110,7 @@ defmodule ArchaeologyRush.ExcavationTest do
 
       state = Excavation.site_state(excavation)
 
-      assert state.score == 46
+      assert state.score == 55
       assert List.last(state.turn_logs).score_gain == 4
     end
 

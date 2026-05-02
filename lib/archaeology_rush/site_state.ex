@@ -12,6 +12,7 @@ defmodule ArchaeologyRush.SiteState do
 
   @required_catalog_fields ~w(artifact_id coordinate depth layer_id discovered_turn operator_note)a
   @layer_order [:upper, :middle, :lower]
+  @contamination_note_keywords ["混入", "層乱れ", "注意"]
   @artifact_base_scores %{
     pottery_shard: 8,
     stone_tool: 12,
@@ -126,11 +127,18 @@ defmodule ArchaeologyRush.SiteState do
 
         if missing == [] do
           cataloged = %{merged | status: :cataloged}
+          record_quality_score = record_quality_score(state, merged)
 
           next_state =
             state
             |> put_in([Access.key(:artifacts), artifact_id], cataloged)
-            |> append_log(%{action: :catalog, artifact_id: artifact_id, result: :ok})
+            |> Map.update!(:score, &(&1 + record_quality_score))
+            |> append_log(%{
+              action: :catalog,
+              artifact_id: artifact_id,
+              result: :ok,
+              record_quality_score: record_quality_score
+            })
 
           {:ok, next_state, cataloged}
         else
@@ -256,6 +264,46 @@ defmodule ArchaeologyRush.SiteState do
     |> Kernel.*(quality_multiplier(artifact.quality))
     |> round()
   end
+
+  @spec record_quality_score(t(), artifact()) :: integer()
+  defp record_quality_score(state, artifact) do
+    timing_score(artifact) + contamination_note_score(state, artifact)
+  end
+
+  @spec timing_score(artifact()) :: integer()
+  defp timing_score(%{status: :on_hold}), do: -3
+  defp timing_score(%{status: :discovered}), do: 3
+  defp timing_score(_artifact), do: 0
+
+  @spec contamination_note_score(t(), artifact()) :: integer()
+  defp contamination_note_score(state, artifact) do
+    if contaminated_artifact?(state, artifact) do
+      if contamination_note?(artifact.operator_note), do: 2, else: -2
+    else
+      0
+    end
+  end
+
+  @spec contaminated_artifact?(t(), artifact()) :: boolean()
+  defp contaminated_artifact?(state, artifact) do
+    case layer_atom(artifact.layer_id) do
+      nil -> false
+      layer -> MapSet.member?(state.mixed_layers, {artifact.coordinate, layer})
+    end
+  end
+
+  @spec layer_atom(String.t() | nil) :: layer() | nil
+  defp layer_atom("upper"), do: :upper
+  defp layer_atom("middle"), do: :middle
+  defp layer_atom("lower"), do: :lower
+  defp layer_atom(_layer_id), do: nil
+
+  @spec contamination_note?(String.t() | nil) :: boolean()
+  defp contamination_note?(note) when is_binary(note) do
+    Enum.any?(@contamination_note_keywords, &String.contains?(note, &1))
+  end
+
+  defp contamination_note?(_note), do: false
 
   @spec blank?(term()) :: boolean()
   defp blank?(value) when value in [nil, ""], do: true

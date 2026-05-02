@@ -71,7 +71,59 @@ defmodule ArchaeologyRush.SiteStateTest do
 
       {:ok, state, recovered} = SiteState.recover(state, artifact.id)
       assert recovered.status == :recovered
-      assert state.score == 24
+      assert state.score == 27
+    end
+
+    test "adds record quality score when cataloging in the discovery turn" do
+      discovery_fn = fn _cell, _layer, _turn -> %{kind: :pottery_shard, quality: :fair} end
+
+      {:ok, state, artifact} =
+        SiteState.new() |> SiteState.dig({0, 0}, discovery_fn: discovery_fn)
+
+      {:ok, state, _cataloged} = SiteState.catalog(state, artifact.id, catalog_attrs(artifact))
+
+      assert state.score == 3
+      assert List.last(state.turn_logs).record_quality_score == 3
+    end
+
+    test "subtracts record quality score when cataloging an on-hold artifact" do
+      discovery_fn = fn _cell, _layer, _turn -> %{kind: :pottery_shard, quality: :fair} end
+
+      {:ok, state, artifact} =
+        SiteState.new() |> SiteState.dig({0, 0}, discovery_fn: discovery_fn)
+
+      state = SiteState.end_turn(state)
+      {:ok, state, _cataloged} = SiteState.catalog(state, artifact.id, catalog_attrs(artifact))
+
+      assert state.score == -3
+      assert List.last(state.turn_logs).record_quality_score == -3
+    end
+
+    test "adds note score for contaminated layer when operator note mentions contamination" do
+      discovery_fn = fn _cell, _layer, _turn -> %{kind: :pottery_shard, quality: :fair} end
+
+      {:ok, state, _artifact} = SiteState.new() |> SiteState.dig({0, 0})
+      {:ok, state, _artifact} = SiteState.dig(state, {0, 0})
+      {:ok, state, artifact} = SiteState.dig(state, {0, 0}, discovery_fn: discovery_fn)
+
+      attrs = catalog_attrs(artifact, %{operator_note: "層乱れと混入に注意"})
+      {:ok, state, _cataloged} = SiteState.catalog(state, artifact.id, attrs)
+
+      assert state.score == 0
+      assert List.last(state.turn_logs).record_quality_score == 5
+    end
+
+    test "subtracts note score for contaminated layer without a contamination note" do
+      discovery_fn = fn _cell, _layer, _turn -> %{kind: :pottery_shard, quality: :fair} end
+
+      {:ok, state, _artifact} = SiteState.new() |> SiteState.dig({0, 0})
+      {:ok, state, _artifact} = SiteState.dig(state, {0, 0})
+      {:ok, state, artifact} = SiteState.dig(state, {0, 0}, discovery_fn: discovery_fn)
+
+      {:ok, state, _cataloged} = SiteState.catalog(state, artifact.id, catalog_attrs(artifact))
+
+      assert state.score == -4
+      assert List.last(state.turn_logs).record_quality_score == 1
     end
   end
 
@@ -89,5 +141,19 @@ defmodule ArchaeologyRush.SiteStateTest do
       assert next_state.turn_dig_counts == %{}
       assert next_state.artifacts[artifact.id].status == :on_hold
     end
+  end
+
+  defp catalog_attrs(artifact, overrides \\ %{}) do
+    Map.merge(
+      %{
+        artifact_id: artifact.id,
+        coordinate: artifact.coordinate,
+        depth: artifact.depth,
+        layer_id: artifact.layer_id,
+        discovered_turn: artifact.discovered_turn,
+        operator_note: "well preserved"
+      },
+      overrides
+    )
   end
 end

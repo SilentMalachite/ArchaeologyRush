@@ -173,6 +173,7 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
         |> render_submit()
 
       assert html =~ "記録済"
+      assert html =~ "記録品質 +3点"
 
       html =
         view
