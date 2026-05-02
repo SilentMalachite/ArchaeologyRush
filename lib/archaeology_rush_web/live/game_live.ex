@@ -24,21 +24,43 @@ defmodule ArchaeologyRushWeb.GameLive do
     cataloged: {"#dbeafe", "#1e40af"},
     recovered: {"#d1fae5", "#065f46"}
   }
+  @difficulty_presets %{
+    easy: [
+      max_turns: 12,
+      actions_per_turn: 4,
+      target_important_artifacts: 2,
+      max_record_misses: 2
+    ],
+    normal: [
+      max_turns: 10,
+      actions_per_turn: 3,
+      target_important_artifacts: 3,
+      max_record_misses: 1
+    ],
+    hard: [
+      max_turns: 8,
+      actions_per_turn: 2,
+      target_important_artifacts: 4,
+      max_record_misses: 0
+    ]
+  }
+  @difficulty_labels %{easy: "かんたん", normal: "ふつう", hard: "むずかしい"}
+  @difficulty_order [:easy, :normal, :hard]
 
   @impl true
   def mount(_params, session, socket) do
-    game_options =
+    raw_game_options =
       session
       |> Map.get("game_options", [])
-      |> resolve_game_options()
 
-    {:ok, pid} = GameSession.start_link(game_options)
-    excavation = GameSession.get_state(pid)
+    difficulty = normalize_difficulty(Keyword.get(raw_game_options, :difficulty, :normal))
+    {pid, excavation} = start_game_session(difficulty, raw_game_options)
 
     {:ok,
      assign(socket,
        game_pid: pid,
        excavation: excavation,
+       difficulty: difficulty,
        selected_cell: nil,
        show_catalog_modal: false,
        catalog_target_id: nil,
@@ -62,6 +84,27 @@ defmodule ArchaeologyRushWeb.GameLive do
       end
 
     {:noreply, assign(socket, :selected_cell, selected)}
+  end
+
+  def handle_event("change_difficulty", %{"difficulty" => difficulty}, socket) do
+    difficulty = normalize_difficulty(difficulty)
+    GenServer.stop(socket.assigns.game_pid, :normal)
+    {pid, excavation} = start_game_session(difficulty)
+
+    {:noreply,
+     assign(socket,
+       game_pid: pid,
+       excavation: excavation,
+       difficulty: difficulty,
+       selected_cell: nil,
+       show_catalog_modal: false,
+       catalog_target_id: nil,
+       catalog_values: %{},
+       catalog_errors: %{},
+       show_final_report_modal: false,
+       final_report_values: %{},
+       final_report_errors: %{}
+     )}
   end
 
   def handle_event("dig", _params, socket) do
@@ -194,8 +237,7 @@ defmodule ArchaeologyRushWeb.GameLive do
 
   def handle_event("new_game", _params, socket) do
     GenServer.stop(socket.assigns.game_pid, :normal)
-    {:ok, pid} = GameSession.start_link([])
-    excavation = GameSession.get_state(pid)
+    {pid, excavation} = start_game_session(socket.assigns.difficulty)
 
     {:noreply,
      assign(socket,
@@ -233,6 +275,9 @@ defmodule ArchaeologyRushWeb.GameLive do
           </span>
           <span style="font-size: 0.85rem;">
             道具耐久 <strong style="color: #64ffda;"><%= @excavation.site_state.tool_durability %></strong>
+          </span>
+          <span style="font-size: 0.85rem;">
+            難易度 <strong style="color: #64ffda;"><%= difficulty_label(@difficulty) %></strong>
           </span>
         </div>
         <span style={game_status_badge_style(Excavation.game_status(@excavation))}>
@@ -349,6 +394,21 @@ defmodule ArchaeologyRushWeb.GameLive do
               >
                 📝 最終レポート
               </button>
+            </div>
+          </div>
+
+          <div style="background: #16213e; border-radius: 12px; padding: 14px;">
+            <div style="color: #8892b0; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;">難易度</div>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <%= for difficulty <- difficulty_order() do %>
+                <button
+                  phx-click="change_difficulty"
+                  phx-value-difficulty={difficulty}
+                  style={difficulty_button_style(@difficulty, difficulty)}
+                >
+                  <%= difficulty_label(difficulty) %>
+                </button>
+              <% end %>
             </div>
           </div>
 
@@ -494,6 +554,33 @@ defmodule ArchaeologyRushWeb.GameLive do
   end
 
   # --- Helper functions ---
+
+  defp start_game_session(difficulty, options \\ []) do
+    game_options =
+      difficulty
+      |> difficulty_options()
+      |> Keyword.merge(Keyword.delete(options, :difficulty))
+      |> resolve_game_options()
+
+    {:ok, pid} = GameSession.start_link(game_options)
+    {pid, GameSession.get_state(pid)}
+  end
+
+  defp normalize_difficulty(difficulty) when difficulty in [:easy, "easy"], do: :easy
+  defp normalize_difficulty(difficulty) when difficulty in [:hard, "hard"], do: :hard
+  defp normalize_difficulty(_difficulty), do: :normal
+
+  defp difficulty_options(difficulty), do: Map.fetch!(@difficulty_presets, difficulty)
+  defp difficulty_label(difficulty), do: Map.fetch!(@difficulty_labels, difficulty)
+  defp difficulty_order, do: @difficulty_order
+
+  defp difficulty_button_style(selected, difficulty) do
+    if selected == difficulty do
+      "padding: 8px; border-radius: 8px; border: none; font-size: 0.8rem; font-weight: 700; cursor: pointer; background: #64ffda; color: #0a192f;"
+    else
+      "padding: 8px; border-radius: 8px; border: none; font-size: 0.8rem; font-weight: 700; cursor: pointer; background: #233554; color: #ccd6f6;"
+    end
+  end
 
   defp resolve_game_options(options) do
     {discovery_mode, options} = Keyword.pop(options, :discovery_mode)

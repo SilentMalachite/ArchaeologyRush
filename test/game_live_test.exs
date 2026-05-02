@@ -9,6 +9,14 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
       assert html =~ "スコア"
       assert html =~ "進行中"
     end
+
+    test "shows the default difficulty", %{conn: conn} do
+      {:ok, _view, html} = live(conn, "/game")
+
+      assert html =~ "難易度"
+      assert html =~ "ふつう"
+      assert html =~ "ターン <strong style=\"color: #64ffda;\">1</strong> / 10"
+    end
   end
 
   describe "select_cell" do
@@ -242,6 +250,22 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
         |> render_click()
 
       assert html =~ "進行中"
+    end
+  end
+
+  describe "difficulty" do
+    test "switching difficulty starts a new game with the selected preset", %{conn: conn} do
+      {:ok, view, _html} = live(conn, "/game")
+
+      html =
+        view
+        |> element("button[phx-click='change_difficulty'][phx-value-difficulty='hard']")
+        |> render_click()
+
+      assert html =~ "むずかしい"
+      assert html =~ "ターン <strong style=\"color: #64ffda;\">1</strong> / 8"
+      assert html =~ "残り行動 <strong style=\"color: #64ffda;\">2</strong>"
+      assert html =~ "記録ミス <strong style=\"color: #64ffda;\">0</strong> / 0"
     end
   end
 end
