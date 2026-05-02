@@ -236,13 +236,19 @@ defmodule ArchaeologyRush.GameSessionTest do
   end
 
   describe "catalog/3" do
-    test "catalogs a discovered artifact with operator_note" do
+    test "catalogs a discovered artifact with context_type and operator_note" do
       {:ok, pid} = GameSession.start_link(discovery_fn: always_discover_fn())
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
 
-      attrs = %{operator_note: "テスト記録", artifact_id: artifact.id}
+      attrs = %{
+        artifact_id: artifact.id,
+        context_type: "feature_inside",
+        operator_note: "テスト記録"
+      }
+
       assert {:ok, state, cataloged} = GameSession.catalog(pid, artifact.id, attrs)
       assert cataloged.status == :cataloged
+      assert cataloged.context_type == "feature_inside"
       assert cataloged.operator_note == "テスト記録"
       assert state.site_state.artifacts[artifact.id].status == :cataloged
     end
@@ -252,7 +258,12 @@ defmodule ArchaeologyRush.GameSessionTest do
     test "recovers a cataloged artifact and adds score" do
       {:ok, pid} = GameSession.start_link(discovery_fn: always_discover_fn())
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
-      {:ok, _state, _cataloged} = GameSession.catalog(pid, artifact.id, %{operator_note: "memo", artifact_id: artifact.id})
+      {:ok, _state, _cataloged} =
+        GameSession.catalog(pid, artifact.id, %{
+          artifact_id: artifact.id,
+          context_type: "feature_inside",
+          operator_note: "memo"
+        })
       assert {:ok, state, recovered} = GameSession.recover(pid, artifact.id)
       assert recovered.status == :recovered
       assert state.site_state.score > 0
@@ -286,7 +297,12 @@ defmodule ArchaeologyRush.GameSessionTest do
 
       # dig -> catalog -> recover
       {:ok, _state, artifact} = GameSession.dig(pid, {0, 0})
-      {:ok, _state, _cataloged} = GameSession.catalog(pid, artifact.id, %{operator_note: "note", artifact_id: artifact.id})
+      {:ok, _state, _cataloged} =
+        GameSession.catalog(pid, artifact.id, %{
+          artifact_id: artifact.id,
+          context_type: "feature_inside",
+          operator_note: "note"
+        })
       {:ok, _state, _recovered} = GameSession.recover(pid, artifact.id)
 
       # complete_report -> check win
@@ -562,9 +578,13 @@ defmodule ArchaeologyRushWeb.GameLive do
     {:noreply, assign(socket, show_catalog_modal: false, catalog_target_id: nil)}
   end
 
-  def handle_event("submit_catalog", %{"operator_note" => note}, socket) do
+  def handle_event("submit_catalog", %{"catalog" => catalog}, socket) do
     id = socket.assigns.catalog_target_id
-    attrs = %{operator_note: note, artifact_id: id}
+    attrs = %{
+      artifact_id: id,
+      context_type: Map.get(catalog, "context_type"),
+      operator_note: Map.get(catalog, "operator_note")
+    }
 
     case GameSession.catalog(socket.assigns.game_pid, id, attrs) do
       {:ok, excavation, _artifact} ->
@@ -824,10 +844,17 @@ defmodule ArchaeologyRushWeb.GameLive do
             <h3 style="color: #ccd6f6; font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📋 アーティファクト記録</h3>
             <form phx-submit="submit_catalog">
               <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;">
-                オペレーターノート（任意）
+                出土状況/コンテキスト
+              </label>
+              <select name="catalog[context_type]">
+                <option value="">選択してください</option>
+                <option value="feature_inside">遺構内</option>
+              </select>
+              <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;">
+                担当者メモ
               </label>
               <textarea
-                name="operator_note"
+                name="catalog[operator_note]"
                 rows="3"
                 style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: vertical;"
                 placeholder="観察メモを入力..."
@@ -1166,7 +1193,7 @@ Check each item from the spec:
 1. 4×4グリッドボードが表示される
 2. セルをクリックして選択、「掘る」ボタンで発掘できる
 3. 発見されたアーティファクトがパネルに表示される
-4. operator_noteを入力してcatalog、その後recoverでスコア加算
+4. 出土状況/コンテキストとoperator_noteを入力してcatalog、その後recoverでスコア加算
 5. ターン管理が正しく動作し、勝利/敗北条件でゲームが終了する
 6. ゲーム終了後に再スタートできる
 7. ステータスバーに記録ミス数、道具耐久度が表示される

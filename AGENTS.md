@@ -52,7 +52,7 @@ lib/archaeology_rush/
   excavation.ex       # Use-case API and game_status/1
   repo.ex             # Ecto SQLite3 repository
   site_state.ex       # Core state transitions (dig/catalog/recover/end_turn)
-  artifact.ex         # Artifact schema (name, layer, notes)
+  artifact.ex         # Artifact schema (legacy fields + game catalog fields)
   archaeology_rush.ex # Main application module
 
 lib/archaeology_rush_web.ex

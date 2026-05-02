@@ -13,7 +13,7 @@ ArchaeologyRushの読み取り専用デモUIを、プレイ可能なインタラ
 | レイアウト | ボード中央＋左右パネル（C） | 全情報を一画面に集約するダッシュボード型 |
 | グリッドサイズ | 4×4（16セル） | バランスの良い複雑さ |
 | 発見ロジック | ランダム生成（A） | プロトタイプ用仮実装。後からドメイン仕様に差し替え可能 |
-| catalog入力 | operator_noteのみ（B） | テンポと記録の意味を両立 |
+| catalog入力 | context_type + operator_note | 出土状況/コンテキストと記録メモを必須記録として扱う |
 | 座標系 | 0-indexed {0,0}..{3,3} | Enum.with_indexとの親和性 |
 
 ## Architecture
@@ -84,6 +84,8 @@ ArchaeologyRushの読み取り専用デモUIを、プレイ可能なインタラ
 - `selected_cell` — 現在選択中のセル `{row, col}` or nil
 - `show_catalog_modal` — catalogモーダル表示フラグ
 - `catalog_target_id` — 記録対象のartifact_id
+- `catalog_values` — context_type / operator_note の入力保持
+- `catalog_errors` — catalog入力エラー
 
 注: `game_over` は持たない。`Excavation.game_status/1` から導出する（`:in_progress` 以外がゲーム終了）。
 
@@ -91,7 +93,7 @@ ArchaeologyRushの読み取り専用デモUIを、プレイ可能なインタラ
 - `select_cell` — セル選択
 - `dig` — 選択セルを掘る
 - `open_catalog` — 記録対象を選んでモーダル表示
-- `submit_catalog` — operator_note入力後に記録実行
+- `submit_catalog` — context_typeとoperator_note入力後に記録実行
 - `cancel_catalog` — モーダルキャンセル
 - `recover` — アーティファクト回収
 - `end_turn` — ターン終了
@@ -129,9 +131,10 @@ ArchaeologyRushの読み取り専用デモUIを、プレイ可能なインタラ
      |          -> OK: グリッド更新 + アーティファクト発見通知
      |          -> Error: エラーメッセージ表示
      |
-[発見物の記録ボタン] -> catalogモーダル表示（operator_note入力）
+[発見物の記録ボタン] -> catalogモーダル表示（context_type + operator_note入力）
      |                -> 送信 -> GameSession.catalog(id, attrs)
-     |                -> layer_idはシステム自動設定
+     |                -> context_typeは固定選択肢 feature_inside（遺構内）
+     |                -> layer_idは発見時の層情報を利用
      |
 [発見物の回収ボタン] -> GameSession.recover(id) -> スコア更新
      |
@@ -194,7 +197,7 @@ CLAUDE.mdの「1回の変更で最大3ファイル」ルールに従い、以下
 1. ブラウザで `/game` にアクセスすると4×4のグリッドボードが表示される
 2. セルをクリックして選択、「掘る」ボタンで発掘できる
 3. 発見されたアーティファクトがパネルに表示される
-4. operator_noteを入力してcatalog、その後recoverでスコア加算
+4. 出土状況/コンテキストとoperator_noteを入力してcatalog、その後recoverでスコア加算
 5. ターン管理が正しく動作し、勝利/敗北条件でゲームが終了する
 6. ゲーム終了後に再スタートできる
 7. 全テストがパスし、mix quality が通る
