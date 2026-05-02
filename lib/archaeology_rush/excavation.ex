@@ -7,6 +7,8 @@ defmodule ArchaeologyRush.Excavation do
 
   alias ArchaeologyRush.SiteState
 
+  @important_artifact_kinds MapSet.new([:pottery_shard, :stone_tool, :bone_fragment])
+
   @type status_reason :: :turn_limit_reached | :too_many_record_misses
   @type game_status :: :in_progress | :won | {:lost, status_reason()}
 
@@ -152,5 +154,5 @@ defmodule ArchaeologyRush.Excavation do
   end
 
   @spec important_artifact?(SiteState.artifact()) :: boolean()
-  defp important_artifact?(artifact), do: artifact.kind != :feature_mark
+  defp important_artifact?(artifact), do: MapSet.member?(@important_artifact_kinds, artifact.kind)
 end

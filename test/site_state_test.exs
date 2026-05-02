@@ -62,7 +62,7 @@ defmodule ArchaeologyRush.SiteStateTest do
 
       {:ok, state, recovered} = SiteState.recover(state, artifact.id)
       assert recovered.status == :recovered
-      assert state.score == 20
+      assert state.score == 24
     end
   end
 

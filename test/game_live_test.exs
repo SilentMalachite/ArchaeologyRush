@@ -160,7 +160,7 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
         |> element("button", "回収")
         |> render_click()
 
-      assert html =~ "+15点"
+      assert html =~ "+12点"
       assert html =~ "アーティファクト#1を回収"
     end
   end

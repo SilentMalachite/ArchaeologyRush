@@ -12,6 +12,12 @@ defmodule ArchaeologyRush.SiteState do
 
   @required_catalog_fields ~w(artifact_id coordinate depth layer_id discovered_turn operator_note)a
   @layer_order [:upper, :middle, :lower]
+  @artifact_base_scores %{
+    pottery_shard: 8,
+    stone_tool: 12,
+    bone_fragment: 15,
+    feature_mark: 2
+  }
 
   @type artifact_status :: :discovered | :on_hold | :cataloged | :recovered
 
@@ -140,7 +146,7 @@ defmodule ArchaeologyRush.SiteState do
 
       {:ok, %{status: :cataloged} = artifact} ->
         recovered = %{artifact | status: :recovered}
-        gain = round(10 * quality_multiplier(artifact.quality))
+        gain = recovery_score(artifact)
 
         next_state =
           state
@@ -240,6 +246,14 @@ defmodule ArchaeologyRush.SiteState do
   defp quality_multiplier(:fair), do: 1.0
   defp quality_multiplier(:good), do: 1.5
   defp quality_multiplier(:excellent), do: 2.0
+
+  @spec recovery_score(artifact()) :: integer()
+  defp recovery_score(artifact) do
+    @artifact_base_scores
+    |> Map.fetch!(artifact.kind)
+    |> Kernel.*(quality_multiplier(artifact.quality))
+    |> round()
+  end
 
   @spec blank?(term()) :: boolean()
   defp blank?(value) when value in [nil, ""], do: true

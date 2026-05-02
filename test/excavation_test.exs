@@ -31,6 +31,17 @@ defmodule ArchaeologyRush.ExcavationTest do
       assert Excavation.game_status(excavation) == :won
     end
 
+    test "does not count feature marks as important artifacts" do
+      discovery_fn = fn _cell, _layer, _turn -> %{kind: :feature_mark, quality: :excellent} end
+
+      excavation =
+        Excavation.new_session(target_important_artifacts: 1)
+        |> recover_artifact!({1, 1}, discovery_fn)
+        |> Excavation.complete_report()
+
+      assert Excavation.game_status(excavation) == :in_progress
+    end
+
     test "returns lost when record misses exceed the session limit" do
       discovery_fn = fn _cell, _layer, _turn -> %{kind: :bone_fragment, quality: :fair} end
 
@@ -80,8 +91,27 @@ defmodule ArchaeologyRush.ExcavationTest do
       state = Excavation.site_state(finished_turn)
 
       assert state.turn == 2
-      assert state.score == 20
+      assert state.score == 24
       assert List.last(state.turn_logs).action == :end_turn
+    end
+
+    test "scores recovered artifacts from kind base points and quality multiplier" do
+      excavation =
+        Excavation.new_session(actions_per_turn: 3)
+        |> recover_artifact!({0, 0}, fn _cell, _layer, _turn ->
+          %{kind: :pottery_shard, quality: :good}
+        end)
+        |> recover_artifact!({0, 1}, fn _cell, _layer, _turn ->
+          %{kind: :bone_fragment, quality: :excellent}
+        end)
+        |> recover_artifact!({0, 2}, fn _cell, _layer, _turn ->
+          %{kind: :feature_mark, quality: :excellent}
+        end)
+
+      state = Excavation.site_state(excavation)
+
+      assert state.score == 46
+      assert List.last(state.turn_logs).score_gain == 4
     end
 
     test "returns domain errors as-is" do

@@ -79,7 +79,7 @@ defmodule ArchaeologyRush.PersistenceTest do
 
       assert loaded.site_state.turn == 2
       assert loaded.site_state.actions_left == 3
-      assert loaded.site_state.score == 15
+      assert loaded.site_state.score == 12
       assert loaded.site_state.tool_durability == 29
       assert loaded.site_state.cell_progress == %{{1, 2} => 1}
       assert loaded.site_state.turn_dig_counts == %{}
