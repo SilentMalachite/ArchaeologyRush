@@ -52,7 +52,7 @@ defmodule ArchaeologyRush.MixProject do
        sparse: "optimized",
        app: false,
        compile: false},
-      {:desktop, "~> 1.5"},
+      {:desktop, "~> 1.5", only: [:dev, :prod]},
       {:bandit, "~> 1.8"},
       {:vix, "~> 0.34"},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

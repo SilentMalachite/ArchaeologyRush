@@ -26,8 +26,13 @@ defmodule ArchaeologyRushWeb.GameLive do
   }
 
   @impl true
-  def mount(_params, _session, socket) do
-    {:ok, pid} = GameSession.start_link([])
+  def mount(_params, session, socket) do
+    game_options =
+      session
+      |> Map.get("game_options", [])
+      |> resolve_game_options()
+
+    {:ok, pid} = GameSession.start_link(game_options)
     excavation = GameSession.get_state(pid)
 
     {:ok,
@@ -36,7 +41,12 @@ defmodule ArchaeologyRushWeb.GameLive do
        excavation: excavation,
        selected_cell: nil,
        show_catalog_modal: false,
-       catalog_target_id: nil
+       catalog_target_id: nil,
+       catalog_values: %{},
+       catalog_errors: %{},
+       show_final_report_modal: false,
+       final_report_values: %{},
+       final_report_errors: %{}
      )}
   end
 
@@ -74,29 +84,56 @@ defmodule ArchaeologyRushWeb.GameLive do
     {:noreply,
      assign(socket,
        show_catalog_modal: true,
-       catalog_target_id: String.to_integer(id)
+       catalog_target_id: String.to_integer(id),
+       catalog_values: %{},
+       catalog_errors: %{}
      )}
   end
 
   def handle_event("cancel_catalog", _params, socket) do
-    {:noreply, assign(socket, show_catalog_modal: false, catalog_target_id: nil)}
+    {:noreply,
+     assign(socket,
+       show_catalog_modal: false,
+       catalog_target_id: nil,
+       catalog_values: %{},
+       catalog_errors: %{}
+     )}
   end
 
-  def handle_event("submit_catalog", %{"operator_note" => note}, socket) do
+  def handle_event("submit_catalog", %{"catalog" => catalog}, socket) do
     id = socket.assigns.catalog_target_id
-    attrs = %{operator_note: note, artifact_id: id}
+    errors = validate_catalog(catalog)
 
-    case GameSession.catalog(socket.assigns.game_pid, id, attrs) do
-      {:ok, excavation, _artifact} ->
-        {:noreply,
-         assign(socket,
-           excavation: excavation,
-           show_catalog_modal: false,
-           catalog_target_id: nil
-         )}
+    if errors == %{} do
+      attrs = %{operator_note: Map.get(catalog, "operator_note"), artifact_id: id}
 
-      {:error, reason} ->
-        {:noreply, put_flash(socket, :error, error_message(reason))}
+      case GameSession.catalog(socket.assigns.game_pid, id, attrs) do
+        {:ok, excavation, _artifact} ->
+          {:noreply,
+           assign(socket,
+             excavation: excavation,
+             show_catalog_modal: false,
+             catalog_target_id: nil,
+             catalog_values: %{},
+             catalog_errors: %{}
+           )}
+
+        {:error, {:missing_required_fields, fields}} ->
+          {:noreply,
+           assign(socket,
+             catalog_values: catalog,
+             catalog_errors: catalog_missing_field_errors(fields)
+           )}
+
+        {:error, reason} ->
+          {:noreply, put_flash(socket, :error, error_message(reason))}
+      end
+    else
+      {:noreply,
+       assign(socket,
+         catalog_values: catalog,
+         catalog_errors: errors
+       )}
     end
   end
 
@@ -117,9 +154,42 @@ defmodule ArchaeologyRushWeb.GameLive do
     {:noreply, assign(socket, excavation: excavation, selected_cell: nil)}
   end
 
-  def handle_event("complete_report", _params, socket) do
-    excavation = GameSession.complete_report(socket.assigns.game_pid)
-    {:noreply, assign(socket, excavation: excavation)}
+  def handle_event("open_final_report", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_final_report_modal: true,
+       final_report_errors: %{}
+     )}
+  end
+
+  def handle_event("cancel_final_report", _params, socket) do
+    {:noreply,
+     assign(socket,
+       show_final_report_modal: false,
+       final_report_errors: %{}
+     )}
+  end
+
+  def handle_event("submit_final_report", %{"final_report" => report}, socket) do
+    errors = validate_final_report(report)
+
+    if errors == %{} do
+      excavation = GameSession.complete_report(socket.assigns.game_pid)
+
+      {:noreply,
+       assign(socket,
+         excavation: excavation,
+         show_final_report_modal: false,
+         final_report_values: report,
+         final_report_errors: %{}
+       )}
+    else
+      {:noreply,
+       assign(socket,
+         final_report_values: report,
+         final_report_errors: errors
+       )}
+    end
   end
 
   def handle_event("new_game", _params, socket) do
@@ -133,7 +203,12 @@ defmodule ArchaeologyRushWeb.GameLive do
        excavation: excavation,
        selected_cell: nil,
        show_catalog_modal: false,
-       catalog_target_id: nil
+       catalog_target_id: nil,
+       catalog_values: %{},
+       catalog_errors: %{},
+       show_final_report_modal: false,
+       final_report_values: %{},
+       final_report_errors: %{}
      )}
   end
 
@@ -268,7 +343,7 @@ defmodule ArchaeologyRushWeb.GameLive do
                 <% end %>
               </button>
               <button
-                phx-click="complete_report"
+                phx-click="open_final_report"
                 disabled={not can_complete_report?(@excavation)}
                 style={"padding: 10px; border-radius: 8px; border: none; font-size: 0.85rem; font-weight: 700; cursor: #{if can_complete_report?(@excavation), do: "pointer", else: "not-allowed"}; background: #{if can_complete_report?(@excavation), do: "#fbbf24", else: "#233554"}; color: #{if can_complete_report?(@excavation), do: "#0a192f", else: "#4a5568"};"}
               >
@@ -339,19 +414,32 @@ defmodule ArchaeologyRushWeb.GameLive do
 
       <%!-- Catalogモーダル --%>
       <%= if @show_catalog_modal do %>
+        <% catalog_target = catalog_target_artifact(@excavation, @catalog_target_id) %>
         <div style="position: fixed; inset: 0; background: rgba(10, 25, 47, 0.85); display: flex; align-items: center; justify-content: center; z-index: 100;">
-          <div style="background: #16213e; border-radius: 16px; padding: 30px; max-width: 380px; width: 90%;">
+          <div style="background: #16213e; border-radius: 16px; padding: 30px; max-width: 440px; width: 90%;">
             <h3 style="color: #ccd6f6; font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📋 アーティファクト記録</h3>
-            <form phx-submit="submit_catalog">
+            <%= if catalog_target do %>
+              <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 14px;">
+                <%= catalog_fact("遺物ID", catalog_target.id) %>
+                <%= catalog_fact("座標", format_cell(catalog_target.coordinate)) %>
+                <%= catalog_fact("深度", catalog_target.depth) %>
+                <%= catalog_fact("層ID", catalog_target.layer_id) %>
+                <%= catalog_fact("発見ターン", catalog_target.discovered_turn) %>
+              </div>
+            <% end %>
+            <form id="catalog-form" phx-submit="submit_catalog">
               <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;">
-                オペレーターノート（任意）
+                担当者メモ
               </label>
               <textarea
-                name="operator_note"
+                name="catalog[operator_note]"
                 rows="3"
                 style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: vertical;"
                 placeholder="観察メモを入力..."
-              ></textarea>
+              ><%= Map.get(@catalog_values, "operator_note", "") %></textarea>
+              <%= if error = Map.get(@catalog_errors, "operator_note") do %>
+                <div style="color: #ff6b6b; font-size: 0.75rem; margin-top: 6px;"><%= error %></div>
+              <% end %>
               <div style="display: flex; gap: 8px; margin-top: 16px;">
                 <button
                   type="submit"
@@ -371,11 +459,58 @@ defmodule ArchaeologyRushWeb.GameLive do
           </div>
         </div>
       <% end %>
+
+      <%!-- 最終レポートモーダル --%>
+      <%= if @show_final_report_modal do %>
+        <div style="position: fixed; inset: 0; background: rgba(10, 25, 47, 0.85); display: flex; align-items: center; justify-content: center; z-index: 100;">
+          <div style="background: #16213e; border-radius: 16px; padding: 30px; max-width: 460px; width: 90%;">
+            <h3 style="color: #ccd6f6; font-size: 1.1rem; font-weight: 700; margin-bottom: 16px;">📝 最終レポート</h3>
+            <form id="final-report-form" phx-submit="submit_final_report">
+              <%= report_text_input("investigator_name", "調査者名", @final_report_values, @final_report_errors) %>
+              <%= report_textarea("findings", "所見", @final_report_values, @final_report_errors) %>
+              <%= report_textarea("important_artifact_summary", "重要遺物の要約", @final_report_values, @final_report_errors) %>
+              <%= report_number_input("survey_days", "調査日数", @final_report_values, @final_report_errors) %>
+              <div style="display: flex; gap: 8px; margin-top: 16px;">
+                <button
+                  type="submit"
+                  style="flex: 1; padding: 10px; background: #fbbf24; color: #0a192f; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer;"
+                >
+                  レポート提出
+                </button>
+                <button
+                  type="button"
+                  phx-click="cancel_final_report"
+                  style="flex: 1; padding: 10px; background: #233554; color: #8892b0; border: none; border-radius: 8px; font-size: 0.85rem; cursor: pointer;"
+                >
+                  キャンセル
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      <% end %>
     </main>
     """
   end
 
   # --- Helper functions ---
+
+  defp resolve_game_options(options) do
+    {discovery_mode, options} = Keyword.pop(options, :discovery_mode)
+
+    case discovery_mode do
+      "always" ->
+        Keyword.put(options, :discovery_fn, fn _, _, _ ->
+          %{kind: :pottery_shard, quality: :good}
+        end)
+
+      "none" ->
+        Keyword.put(options, :discovery_fn, fn _, _, _ -> nil end)
+
+      _other ->
+        options
+    end
+  end
 
   defp game_in_progress?(excavation) do
     Excavation.game_status(excavation) == :in_progress
@@ -396,6 +531,135 @@ defmodule ArchaeologyRushWeb.GameLive do
     excavation.site_state.artifacts
     |> Map.values()
     |> Enum.count(fn a -> a.status == :recovered and a.kind != :feature_mark end)
+  end
+
+  defp validate_catalog(catalog) do
+    if blank?(Map.get(catalog, "operator_note")) do
+      %{"operator_note" => "担当者メモを入力してください"}
+    else
+      %{}
+    end
+  end
+
+  defp catalog_missing_field_errors(fields) do
+    Map.new(fields, fn field -> {Atom.to_string(field), catalog_field_error(field)} end)
+  end
+
+  defp catalog_field_error(:operator_note), do: "担当者メモを入力してください"
+  defp catalog_field_error(field), do: "#{field}を確認してください"
+
+  defp catalog_target_artifact(excavation, artifact_id) do
+    Map.get(excavation.site_state.artifacts, artifact_id)
+  end
+
+  defp catalog_fact(label, value) do
+    assigns = %{label: label, value: value}
+
+    ~H"""
+    <div style="background: #233554; border-radius: 8px; padding: 8px;">
+      <div style="color: #8892b0; font-size: 0.72rem; margin-bottom: 3px;"><%= @label %></div>
+      <div style="color: #ccd6f6; font-size: 0.82rem; font-weight: 700;"><%= @value %></div>
+    </div>
+    """
+  end
+
+  defp format_cell({row, col}), do: "(#{row}, #{col})"
+  defp format_cell(_cell), do: "-"
+
+  defp validate_final_report(report) do
+    [
+      {"investigator_name", "調査者名を入力してください"},
+      {"findings", "所見を入力してください"},
+      {"important_artifact_summary", "重要遺物の要約を入力してください"},
+      {"survey_days", "調査日数を入力してください"}
+    ]
+    |> Enum.reduce(%{}, fn {field, message}, errors ->
+      if blank?(Map.get(report, field)) do
+        Map.put(errors, field, message)
+      else
+        errors
+      end
+    end)
+  end
+
+  defp blank?(value) when value in [nil, ""], do: true
+  defp blank?(value) when is_binary(value), do: String.trim(value) == ""
+  defp blank?(_value), do: false
+
+  defp final_report_value(values, field), do: Map.get(values, field, "")
+
+  defp final_report_error(errors, field), do: Map.get(errors, field)
+
+  defp report_text_input(field, label, values, errors) do
+    assigns = %{
+      field: field,
+      label: label,
+      value: final_report_value(values, field),
+      error: final_report_error(errors, field)
+    }
+
+    ~H"""
+    <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;"><%= @label %></label>
+    <input
+      type="text"
+      name={"final_report[#{@field}]"}
+      value={@value}
+      style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; margin-bottom: 4px;"
+    />
+    <%= if @error do %>
+      <div style="color: #ff6b6b; font-size: 0.75rem; margin-bottom: 10px;"><%= @error %></div>
+    <% else %>
+      <div style="height: 10px;"></div>
+    <% end %>
+    """
+  end
+
+  defp report_number_input(field, label, values, errors) do
+    assigns = %{
+      field: field,
+      label: label,
+      value: final_report_value(values, field),
+      error: final_report_error(errors, field)
+    }
+
+    ~H"""
+    <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;"><%= @label %></label>
+    <input
+      type="number"
+      min="1"
+      name={"final_report[#{@field}]"}
+      value={@value}
+      style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; margin-bottom: 4px;"
+    />
+    <%= if @error do %>
+      <div style="color: #ff6b6b; font-size: 0.75rem; margin-bottom: 10px;"><%= @error %></div>
+    <% else %>
+      <div style="height: 10px;"></div>
+    <% end %>
+    """
+  end
+
+  defp report_textarea(field, label, values, errors) do
+    assigns = %{
+      field: field,
+      label: label,
+      value: final_report_value(values, field),
+      error: final_report_error(errors, field)
+    }
+
+    ~H"""
+    <label style="display: block; color: #8892b0; font-size: 0.8rem; margin-bottom: 6px;"><%= @label %></label>
+    <textarea
+      name={"final_report[#{@field}]"}
+      rows="3"
+      style="width: 100%; background: #233554; color: #ccd6f6; border: 1px solid #344563; border-radius: 8px; padding: 10px; font-size: 0.85rem; resize: vertical; margin-bottom: 4px;"
+    ><%= @value %></textarea>
+    <%= if @error do %>
+      <div style="color: #ff6b6b; font-size: 0.75rem; margin-bottom: 10px;"><%= @error %></div>
+    <% else %>
+      <div style="height: 10px;"></div>
+    <% end %>
+    """
   end
 
   defp cell_color(progress) when progress >= 3, do: "#6b5b47"
@@ -456,6 +720,10 @@ defmodule ArchaeologyRushWeb.GameLive do
   defp game_over_reason({:lost, :turn_limit_reached}), do: "ターン上限に達しました"
   defp game_over_reason({:lost, :too_many_record_misses}), do: "記録ミスが多すぎました"
 
+  defp format_log(%{action: :dig, cell: {r, c}, layer: layer, penalty_applied: true}) do
+    "セル(#{r},#{c})を掘削 → #{layer_label_from_atom(layer)} / 層混入ペナルティ -5点"
+  end
+
   defp format_log(%{action: :dig, cell: {r, c}, layer: layer}) do
     "セル(#{r},#{c})を掘削 → #{layer_label_from_atom(layer)}"
   end
@@ -466,6 +734,10 @@ defmodule ArchaeologyRushWeb.GameLive do
 
   defp format_log(%{action: :recover, artifact_id: id, score_gain: gain}) do
     "アーティファクト##{id}を回収 (+#{gain}点)"
+  end
+
+  defp format_log(%{action: :end_turn, next_turn: t, record_misses: misses}) when misses > 0 do
+    "ターン#{t}開始 / 記録ミス +#{misses}"
   end
 
   defp format_log(%{action: :end_turn, next_turn: t}) do

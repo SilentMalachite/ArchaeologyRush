@@ -107,11 +107,27 @@ defmodule ArchaeologyRush.Excavation do
       |> Map.values()
       |> Enum.count(&(&1.status == :discovered))
 
+    next_state =
+      state
+      |> SiteState.end_turn()
+      |> annotate_last_log(:record_misses, record_misses)
+
     %{
       excavation
-      | site_state: SiteState.end_turn(state),
+      | site_state: next_state,
         record_misses: excavation.record_misses + record_misses
     }
+  end
+
+  @spec annotate_last_log(SiteState.t(), atom(), term()) :: SiteState.t()
+  defp annotate_last_log(%SiteState{turn_logs: []} = state, _key, _value), do: state
+
+  defp annotate_last_log(%SiteState{} = state, key, value) do
+    logs =
+      state.turn_logs
+      |> List.update_at(-1, &Map.put(&1, key, value))
+
+    %{state | turn_logs: logs}
   end
 
   @spec won?(t()) :: boolean()

@@ -47,4 +47,30 @@ defmodule ArchaeologyRush.RandomDiscoveryTest do
       assert counts[:middle] < counts[:lower]
     end
   end
+
+  describe "discovery_fn/1" do
+    test "uses a cell and layer probability table" do
+      fun =
+        RandomDiscovery.discovery_fn(
+          probability_table: %{{{2, 1}, :middle} => 1.0},
+          kind_weights: [stone_tool: 1],
+          quality_weights: [excellent: 1]
+        )
+
+      assert fun.({2, 1}, :middle, 4) == %{kind: :stone_tool, quality: :excellent}
+      assert fun.({2, 1}, :upper, 4) == nil
+      assert fun.({0, 0}, :middle, 4) == nil
+    end
+  end
+
+  describe "default_probability_table/0" do
+    test "covers the 4x4 grid for each known layer" do
+      table = RandomDiscovery.default_probability_table()
+
+      assert map_size(table) == 48
+      assert table[{{0, 0}, :upper}] == 0.20
+      assert table[{{3, 3}, :middle}] == 0.40
+      assert table[{{1, 2}, :lower}] == 0.60
+    end
+  end
 end

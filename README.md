@@ -41,10 +41,11 @@ ArchaeologyRush/
 * `SiteState` に `dig` / `catalog` / `recover` / `end_turn` を実装
 * `Excavation` にユースケース API と `game_status/1` を実装
 * `GameSession` GenServer でゲーム状態をプロセス管理
-* `RandomDiscovery` でアーティファクトをランダム生成（仮実装・差し替え可能）
+* `RandomDiscovery` でセル×層の確率テーブルに基づくアーティファクト発見を実行
 * `http://localhost:4000/game` に **4×4グリッドのインタラクティブゲーム画面**を追加
 * `http://localhost:4000` に読み取り専用デモ画面（progression / winning / losing シナリオ）
-* `mix test` (37テスト) と `mix quality` は通過済み
+* `mix test` (47テスト) と `mix quality` は通過済み
+* DB 永続化の保存/読込 API は実装済み（`GameSession` / `/game` の進行には未接続）
 
 ## Run
 
@@ -70,9 +71,17 @@ mix run --no-halt
 
 * コア状態遷移: 行動消費、層進行、遺物発見、記録（catalog）、回収（recover）、ターン終了
 * 終了判定: `:in_progress` / `:won` / `{:lost, :turn_limit_reached | :too_many_record_misses}`
-* インタラクティブUI: セル選択・掘削・記録モーダル・回収・ターン管理・ゲームオーバー表示
+* インタラクティブUI: セル選択・掘削・記録モーダル・回収・ターン管理・最終レポートフォーム・ゲームオーバー表示
+* プレイフィードバック: Catalog必須項目検証、層混入ペナルティ、記録ミス、スコア増減理由を画面ログで表示
 * デモ表示: progression / winning / losing case をカードで可視化
-* DB インフラ: Ecto + SQLite3、artifacts テーブル（ゲームロジックとは未連携）
+* DB インフラ: Ecto + SQLite3、game_sessions / artifacts / turn_logs による保存/読込 API
+* 発見ロジック: `RandomDiscovery.discovery_fn/1` で確率テーブル、種類重み、品質重みを注入可能
+
+## Documentation Roles
+
+* `README.md`: 現在の起動方法、主要構成、実装済み範囲の入口
+* `docs/specification.md`: ユーザー確定仕様、現行実装との対応、受け入れ条件、未決事項
+* `TODO.md`: 次に着手する作業順序と、仕様確認が必要な項目の短い一覧
 
 ## Domain Boundary
 

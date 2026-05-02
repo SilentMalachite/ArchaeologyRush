@@ -28,6 +28,45 @@ defmodule ArchaeologyRush.ArtifactTest do
     end
   end
 
+  describe "game_changeset/2" do
+    test "is valid with game artifact attributes" do
+      changeset =
+        Artifact.game_changeset(%Artifact{}, %{
+          game_artifact_id: 1,
+          kind: "pottery_shard",
+          quality: "good",
+          status: "discovered",
+          coordinate_row: 1,
+          coordinate_col: 2,
+          depth: 3,
+          layer_id: "lower",
+          discovered_turn: 4,
+          operator_note: "rim fragment near grid edge"
+        })
+
+      assert changeset.valid?
+      assert changeset.errors == []
+    end
+
+    test "requires game artifact fields" do
+      changeset = Artifact.game_changeset(%Artifact{}, %{})
+
+      refute changeset.valid?
+
+      assert errors_on(changeset) == %{
+               coordinate_col: ["can't be blank"],
+               coordinate_row: ["can't be blank"],
+               depth: ["can't be blank"],
+               discovered_turn: ["can't be blank"],
+               game_artifact_id: ["can't be blank"],
+               kind: ["can't be blank"],
+               layer_id: ["can't be blank"],
+               quality: ["can't be blank"],
+               status: ["can't be blank"]
+             }
+    end
+  end
+
   defp errors_on(changeset) do
     Ecto.Changeset.traverse_errors(changeset, fn {message, _opts} -> message end)
   end
