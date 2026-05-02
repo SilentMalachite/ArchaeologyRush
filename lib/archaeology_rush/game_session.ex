@@ -17,7 +17,7 @@ defmodule ArchaeologyRush.GameSession do
           | {:target_important_artifacts, pos_integer()}
           | {:max_record_misses, non_neg_integer()}
           | {:actions_per_turn, pos_integer()}
-          | {:tool_durability, pos_integer()}
+          | {:tool_durability, non_neg_integer()}
           | {:discovery_fn, SiteState.discovery_fn()}
 
   @spec start_link([option()]) :: GenServer.on_start()
@@ -27,7 +27,7 @@ defmodule ArchaeologyRush.GameSession do
 
   @spec dig(pid(), SiteState.cell()) ::
           {:ok, Excavation.t(), SiteState.artifact() | nil}
-          | {:error, :no_actions_left | :cell_fully_excavated}
+          | {:error, :no_actions_left | :tool_broken | :cell_fully_excavated}
   def dig(pid, cell) do
     GenServer.call(pid, {:dig, cell})
   end

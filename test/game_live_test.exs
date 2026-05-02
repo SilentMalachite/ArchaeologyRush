@@ -75,6 +75,25 @@ defmodule ArchaeologyRushWeb.GameLiveTest do
       assert html =~ "層混入ペナルティ"
       assert html =~ "-5点"
     end
+
+    test "shows an error when tool durability is depleted", %{conn: conn} do
+      {:ok, view, _html} =
+        live_isolated(conn, ArchaeologyRushWeb.GameLive,
+          session: %{"game_options" => [tool_durability: 0, discovery_mode: "always"]}
+        )
+
+      view
+      |> element("button[phx-value-row='1'][phx-value-col='1']")
+      |> render_click()
+
+      html =
+        view
+        |> element("button", "掘る")
+        |> render_click()
+
+      assert html =~ "道具耐久がありません"
+      assert html =~ "道具耐久 <strong style=\"color: #64ffda;\">0</strong>"
+    end
   end
 
   describe "end_turn" do

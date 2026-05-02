@@ -34,6 +34,15 @@ defmodule ArchaeologyRush.SiteStateTest do
       assert artifact.status == :discovered
       assert state.artifacts[artifact.id].kind == :pottery_shard
     end
+
+    test "returns tool_broken when tool durability is depleted" do
+      state = SiteState.new(tool_durability: 0)
+
+      assert {:error, :tool_broken} = SiteState.dig(state, {1, 1})
+      assert state.actions_left == 3
+      assert state.tool_durability == 0
+      assert state.cell_progress == %{}
+    end
   end
 
   describe "catalog/3 and recover/2" do

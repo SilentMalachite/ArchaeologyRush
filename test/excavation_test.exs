@@ -123,6 +123,14 @@ defmodule ArchaeologyRush.ExcavationTest do
       assert {:error, :artifact_not_found} = Excavation.catalog(excavation, 999, %{})
       assert {:error, :artifact_not_found} = Excavation.recover(excavation, 999)
     end
+
+    test "returns tool_broken when tool durability is depleted" do
+      excavation = Excavation.new_session(tool_durability: 0)
+
+      assert {:error, :tool_broken} = Excavation.dig(excavation, {0, 0})
+      assert Excavation.site_state(excavation).actions_left == 3
+      assert Excavation.site_state(excavation).tool_durability == 0
+    end
   end
 
   defp recover_artifact!(excavation, cell, discovery_fn) do

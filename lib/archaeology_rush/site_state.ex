@@ -75,10 +75,12 @@ defmodule ArchaeologyRush.SiteState do
   end
 
   @spec dig(t(), cell(), keyword()) ::
-          {:ok, t(), nil | artifact()} | {:error, :no_actions_left | :cell_fully_excavated}
+          {:ok, t(), nil | artifact()}
+          | {:error, :no_actions_left | :tool_broken | :cell_fully_excavated}
   def dig(state, cell, opts \\ [])
 
   def dig(%__MODULE__{actions_left: 0}, _cell, _opts), do: {:error, :no_actions_left}
+  def dig(%__MODULE__{tool_durability: 0}, _cell, _opts), do: {:error, :tool_broken}
 
   def dig(%__MODULE__{} = state, cell, opts) do
     progress = Map.get(state.cell_progress, cell, 0)

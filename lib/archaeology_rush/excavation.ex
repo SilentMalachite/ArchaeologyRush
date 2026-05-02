@@ -65,7 +65,7 @@ defmodule ArchaeologyRush.Excavation do
 
   @spec dig(t(), SiteState.cell(), keyword()) ::
           {:ok, t(), nil | SiteState.artifact()}
-          | {:error, :no_actions_left | :cell_fully_excavated}
+          | {:error, :no_actions_left | :tool_broken | :cell_fully_excavated}
   def dig(%__MODULE__{site_state: state} = excavation, cell, opts \\ []) do
     case SiteState.dig(state, cell, opts) do
       {:ok, next_state, artifact} ->

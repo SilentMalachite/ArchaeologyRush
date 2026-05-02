@@ -42,6 +42,17 @@ defmodule ArchaeologyRush.GameSessionTest do
       {:ok, _state, _artifact} = GameSession.dig(pid, {0, 0})
       assert {:error, :no_actions_left} = GameSession.dig(pid, {1, 1})
     end
+
+    test "returns error when tool durability is depleted" do
+      {:ok, pid} = GameSession.start_link(tool_durability: 0, discovery_fn: always_discover_fn())
+
+      assert {:error, :tool_broken} = GameSession.dig(pid, {0, 0})
+
+      state = GameSession.get_state(pid)
+      assert state.site_state.actions_left == 3
+      assert state.site_state.tool_durability == 0
+      assert state.site_state.cell_progress == %{}
+    end
   end
 
   describe "catalog/3" do

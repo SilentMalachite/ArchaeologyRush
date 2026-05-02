@@ -258,6 +258,12 @@ defmodule ArchaeologyRushWeb.GameLive do
   def render(assigns) do
     ~H"""
     <main style="min-height: 100vh; background: #0a192f; padding: 16px; font-family: 'Noto Sans JP', 'Hiragino Sans', sans-serif; color: #ccd6f6;">
+      <%= if message = Phoenix.Flash.get(@flash, :error) do %>
+        <div style="max-width: 1200px; margin: 0 auto 12px; background: #7f1d1d; color: #fee2e2; border: 1px solid #ef4444; border-radius: 8px; padding: 10px 14px; font-size: 0.85rem; font-weight: 700;">
+          <%= message %>
+        </div>
+      <% end %>
+
       <%!-- ステータスバー --%>
       <div style="max-width: 1200px; margin: 0 auto 12px; background: #16213e; border-radius: 12px; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
         <div style="display: flex; gap: 20px; align-items: center;">
@@ -838,6 +844,7 @@ defmodule ArchaeologyRushWeb.GameLive do
   defp layer_label_from_atom(:lower), do: "下層"
 
   defp error_message(:no_actions_left), do: "行動ポイントが残っていません"
+  defp error_message(:tool_broken), do: "道具耐久がありません"
   defp error_message(:cell_fully_excavated), do: "このセルは既に掘削完了です"
   defp error_message(:artifact_not_found), do: "アーティファクトが見つかりません"
   defp error_message(:artifact_not_cataloged), do: "先に記録してください"
