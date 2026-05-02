@@ -27,9 +27,9 @@ defmodule ArchaeologyRush.RandomDiscovery do
   ]
 
   @layer_discovery_rates %{
-    upper: 0.20,
-    middle: 0.40,
-    lower: 0.60
+    upper: 0.10,
+    middle: 0.25,
+    lower: 0.40
   }
 
   @spec discovery_fn() :: SiteState.discovery_fn()

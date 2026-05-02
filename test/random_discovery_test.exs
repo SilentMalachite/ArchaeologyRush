@@ -68,9 +68,9 @@ defmodule ArchaeologyRush.RandomDiscoveryTest do
       table = RandomDiscovery.default_probability_table()
 
       assert map_size(table) == 48
-      assert table[{{0, 0}, :upper}] == 0.20
-      assert table[{{3, 3}, :middle}] == 0.40
-      assert table[{{1, 2}, :lower}] == 0.60
+      assert table[{{0, 0}, :upper}] == 0.10
+      assert table[{{3, 3}, :middle}] == 0.25
+      assert table[{{1, 2}, :lower}] == 0.40
     end
   end
 end
