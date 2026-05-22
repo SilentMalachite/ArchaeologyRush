@@ -21,7 +21,7 @@ defmodule ArchaeologyRush.Excavation do
           final_report_complete: boolean()
         }
 
-  defstruct site_state: SiteState.new(),
+  defstruct site_state: nil,
             max_turns: 10,
             target_important_artifacts: 3,
             max_record_misses: 1,
@@ -36,6 +36,14 @@ defmodule ArchaeologyRush.Excavation do
       target_important_artifacts: Keyword.get(opts, :target_important_artifacts, 3),
       max_record_misses: Keyword.get(opts, :max_record_misses, 1)
     }
+  end
+
+  @spec new_session_and_dig(keyword(), SiteState.cell(), keyword()) ::
+          {:ok, t(), nil | SiteState.artifact()}
+          | {:error, :no_actions_left | :tool_broken | :cell_fully_excavated}
+  def new_session_and_dig(session_opts \\ [], cell, dig_opts \\ []) do
+    excavation = new_session(session_opts)
+    dig(excavation, cell, dig_opts)
   end
 
   @spec site_state(t()) :: SiteState.t()

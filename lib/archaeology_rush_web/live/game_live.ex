@@ -888,6 +888,4 @@ defmodule ArchaeologyRushWeb.GameLive do
   defp error_message(:cell_fully_excavated), do: "このセルは既に掘削完了です"
   defp error_message(:artifact_not_found), do: "アーティファクトが見つかりません"
   defp error_message(:artifact_not_cataloged), do: "先に記録してください"
-  defp error_message({:missing_required_fields, fields}), do: "必須項目が不足: #{inspect(fields)}"
-  defp error_message(reason), do: "エラー: #{inspect(reason)}"
 end

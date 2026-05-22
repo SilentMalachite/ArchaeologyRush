@@ -58,12 +58,15 @@ defmodule ArchaeologyRush.SiteState do
             next_artifact_id: 1,
             turn_dig_counts: %{},
             cell_progress: %{},
-            mixed_layers: MapSet.new(),
+            mixed_layers: nil,
             artifacts: %{},
             turn_logs: []
 
   @type discovery_result :: nil | %{kind: artifact_kind(), quality: artifact_quality()}
   @type discovery_fn :: (cell(), layer(), pos_integer() -> discovery_result())
+
+  @spec empty_mixed_layers() :: MapSet.t({cell(), layer()})
+  def empty_mixed_layers, do: Enum.into([], MapSet.new())
 
   @spec new(keyword()) :: t()
   def new(opts \\ []) do
@@ -71,9 +74,17 @@ defmodule ArchaeologyRush.SiteState do
     tool_durability = Keyword.get(opts, :tool_durability, 30)
 
     %__MODULE__{
+      turn: 1,
       actions_per_turn: actions_per_turn,
       actions_left: actions_per_turn,
-      tool_durability: tool_durability
+      score: 0,
+      tool_durability: tool_durability,
+      next_artifact_id: 1,
+      turn_dig_counts: %{},
+      cell_progress: %{},
+      mixed_layers: empty_mixed_layers(),
+      artifacts: %{},
+      turn_logs: []
     }
   end
 

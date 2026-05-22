@@ -61,8 +61,7 @@ defmodule ArchaeologyRush.Demo do
     end
 
     {:ok, excavation, artifact} =
-      Excavation.new_session()
-      |> Excavation.dig({2, 1}, discovery_fn: discovery_fn)
+      Excavation.new_session_and_dig([], {2, 1}, discovery_fn: discovery_fn)
 
     after_dig = excavation
 
@@ -100,8 +99,11 @@ defmodule ArchaeologyRush.Demo do
     end
 
     {:ok, excavation, artifact} =
-      Excavation.new_session(target_important_artifacts: 1)
-      |> Excavation.dig({4, 4}, discovery_fn: discovery_fn)
+      Excavation.new_session_and_dig(
+        [target_important_artifacts: 1],
+        {4, 4},
+        discovery_fn: discovery_fn
+      )
 
     attrs = %{
       artifact_id: artifact.id,
@@ -132,8 +134,11 @@ defmodule ArchaeologyRush.Demo do
     end
 
     {:ok, excavation, artifact} =
-      Excavation.new_session(max_record_misses: 0)
-      |> Excavation.dig({7, 3}, discovery_fn: discovery_fn)
+      Excavation.new_session_and_dig(
+        [max_record_misses: 0],
+        {7, 3},
+        discovery_fn: discovery_fn
+      )
 
     ended_turn = Excavation.end_turn(excavation)
 
